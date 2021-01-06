@@ -3,10 +3,10 @@
 """
     @description: TextScanner base mode
     @detail:
-    @copyright: Chonqqing Ainnovation Tech Co., Ltd.
+    @copyright: xxx
     @author: Seven Hsu
-    @e-mail: xushen@ainnovation.com
-    @date: 2020-12-21
+    @e-mail: xxx
+    @date: xxx
 """
 import torch
 import torch.nn as nn
