@@ -1,0 +1,2 @@
+#     images dir         labels dir            image file list
+data/images data/labels data/valid.imglist
