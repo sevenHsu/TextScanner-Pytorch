@@ -54,6 +54,10 @@ def word_format(inputs, t_score):
 
     # B,N,h,w
     order_map = ord_seg_map * pos_seg_map
+    
+    # filter bg
+    chars_seg_map = chars_seg_map[:, 1:]
+    ord_seg_map = ord_seg_map[:, 1:]
 
     # =========order map filter==========
     # B,N,h*w
@@ -89,23 +93,21 @@ def test(**kwargs):
     load_state(model, opt.load_model_path, "cuda:%d" % opt.gpus[0])
     model = gpu(model, opt)
     model.eval()
-    t_score = 0.3
+    t_score = 0.5
     match, all = 0, 0
     for inputs, text in dataloader:
         inputs = gpu(inputs, opt)
         with torch.no_grad():
             outputs = model(inputs)
-        outputs = word_format(outputs, t_score)
-        outputs = outputs[0].detach().cpu().numpy()
-        outputs = outputs[np.where(np.max(outputs, 1) != 0)[0]]
+        # get word format from model output
+        outputs = word_format(outputs, t_score)[0].detach().cpu().numpy()
         idx = np.argmax(outputs, 1)
-        idx = idx[np.where(idx != 0)[0]]
-        preds = ''.join([opt.chars_list[i] for i in idx])
+        preds = ''.join([opt.chars_list[i + 1] for i in idx])
         text = text[0]
         if text == preds:
             match += 1
         else:
-            print('text/pred:%s,%s' % (text, preds))
+            print('img path:%s text/pred:%s,%s' % (img_path, text, preds))
         all += 1
         torch.cuda.empty_cache()
     print('match/all(%2f): %d/%d' % (match / all, match, all))
