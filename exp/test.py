@@ -58,8 +58,6 @@ def word_format(inputs, t_score):
     # =========order map filter==========
     # B,N,h*w
     tmp = order_map.reshape(order_map.shape[0], order_map.shape[1], -1)
-    total = torch.sum(tmp, 1).unsqueeze(1).repeat(1, tmp.shape[1], 1)
-    tmp = tmp / (total + 1e-9)
     max_prob, _ = torch.max(tmp, 2)
     b, n = torch.where(max_prob < t_score)
     for b_i, n_i in zip(b, n):
