@@ -101,13 +101,15 @@ def test(**kwargs):
             outputs = model(inputs)
         # get word format from model output
         outputs = word_format(outputs, t_score)[0].detach().cpu().numpy()
+        outputs = outputs[np.where(np.max(outputs, 1) != 0)[0]]
         idx = np.argmax(outputs, 1)
+        
         preds = ''.join([opt.chars_list[i + 1] for i in idx])
         text = text[0]
         if text == preds:
             match += 1
         else:
-            print('img path:%s text/pred:%s,%s' % (img_path, text, preds))
+            print('text/pred:%s,%s' % (text, preds))
         all += 1
         torch.cuda.empty_cache()
     print('match/all(%2f): %d/%d' % (match / all, match, all))
