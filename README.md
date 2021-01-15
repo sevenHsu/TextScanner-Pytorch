@@ -1,5 +1,5 @@
 ## TextScanner
->Implementation with pytroch of [TextScanner](https://arxiv.org/abs/1912.12422)
+>Implementation of [TextScanner](https://arxiv.org/abs/1912.12422) with pytroch
 
 ### Usage
    - dataset prepare
