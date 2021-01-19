@@ -66,7 +66,7 @@ class OCRDataset(Dataset):
         # load annotation
         anno_path = osp.join(self.gt_root, self.img_files[idx].split('.')[0] + '.txt')
         with open(anno_path, 'r') as f:
-            anno = f.readlines()
+            anno = f.read().splitlines()
 
         anno = anno[0].split(',')
         anno = np.asarray(anno).reshape(-1, 9)
