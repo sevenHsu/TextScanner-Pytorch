@@ -277,11 +277,10 @@ class OrderSeg(nn.Module):
         )
         self.up1 = nn.Sequential(
             nn.Upsample(scale_factor=2, mode='bilinear', align_corners=False),
-            nn.Conv2d(16, self.max_seq, kernel_size=3, stride=1, padding=1),
-            nn.ReLU(inplace=True)
+            nn.Conv2d(16, self.max_seq, kernel_size=3, stride=1, padding=1)
         )
 
-    def forward(self, x):
+    def forward(self, x, h0):
         down1_map = self.down1(x)
         down1_map = self.relu(self.bn1(down1_map))
 
@@ -291,17 +290,17 @@ class OrderSeg(nn.Module):
         down3_map = self.down3(down2_map)
         down3_map = self.relu(self.bn3(down3_map))
 
-        # N,C,H,W->N,W,C,H
-        rnn_input = down3_map.permute([0, 3, 1, 2])
-        # N,W,C,H->N,W,C*H
+        # N,C,H,W->N,W,H,C
+        rnn_input = down3_map.permute([0, 3, 2, 1])
+        # N,W,H,C->N,W,H*C
         rnn_input = rnn_input.reshape([down3_map.shape[0], down3_map.shape[3], -1])
+        # print("shape",down3_map.shape[0],rnn_input.shape[-1])
+        out, hid = self.rnn(rnn_input, h0)
 
-        # h0 = torch.rand(1, down3_map.shape[0], rnn_input.shape[-1]).cuda(self.gpu)
-        out, hid = self.rnn(rnn_input)  # ,h0)
-        # N,W,C*H->N,W,C,H
-        rnn_output = out.reshape([out.shape[0], out.shape[1], -1, down3_map.shape[2]])
-        # N,W,C,H->N,C,H,W
-        rnn_output = rnn_output.permute([0, 2, 3, 1])
+        # N,W,H*C->N,W,H,C
+        rnn_output = out.reshape([out.shape[0], out.shape[1], down3_map.shape[2], -1])
+        # N,W,H,C->N,C,H,W
+        rnn_output = rnn_output.permute([0, 3, 2, 1])
 
         up1_map = self.up3(rnn_output)
         up2_map = self.up2(torch.add(up1_map, down2_map))
@@ -310,7 +309,7 @@ class OrderSeg(nn.Module):
         return up3_map
 
 
-# character segmentation bracnch
+# character segmentation branch
 def char_seg(num_classes):
     return nn.Sequential(conv3x3(128, 64, 1), conv1x1(64, num_classes, 1))
 
@@ -368,7 +367,7 @@ class TxtScanNet(nn.Module):
         if self.mode == 'train':
             load_weight(self.backbone, model_zoo.load_url(model_urls[basenet]))
 
-    def forward(self, x):
+    def forward(self, x, h0=None):
         # B,128,h,w (h=H/2,w=W/2)
         x = self.backbone(x)
         # B,C,h,w
@@ -376,16 +375,21 @@ class TxtScanNet(nn.Module):
         # B,1,h,w
         pos_seg_map = self.posseg(x)
         # B,N,h,w
-        ord_seg_map = self.ordseg(x)
+        ord_seg_map = self.ordseg(x, h0)
 
         return chars_seg_map, ord_seg_map, pos_seg_map
 
 
-def txt_scan_res18(basenet, input_size, max_seq, num_class, mode, attn):
+def txt_scan_res18(input_size, max_seq, num_class, mode, attn):
     net = TxtScanNet('resnet18', input_size, max_seq, num_class, mode, attn)
     return net
 
 
-def txt_scan_res34(basenet, input_size, max_seq, num_class, mode, attn):
+def txt_scan_res34(input_size, max_seq, num_class, mode, attn):
     net = TxtScanNet('resnet34', input_size, max_seq, num_class, mode, attn)
+    return net
+
+
+def txt_scan_res50(input_size, max_seq, num_class, mode, attn):
+    net = TxtScanNet('resnet50', input_size, max_seq, num_class, mode, attn)
     return net

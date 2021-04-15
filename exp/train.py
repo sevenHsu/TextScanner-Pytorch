@@ -92,8 +92,7 @@ def train(**kwargs):
     valid_data = ConcatDataset(valid_sets)
     valid_loader = DataLoader(valid_data, batch_size=opt.batch_size, shuffle=False, num_workers=opt.num_works)
 
-    model = getattr(models, opt.model)(opt.basenet, opt.input_size, opt.max_seq,
-                                       opt.num_classes, mode='train', attn=opt.attn)
+    model = getattr(models, opt.model)(opt.input_size, opt.max_seq, opt.num_classes, mode='train', attn=opt.attn)
 
     if opt.load_model_path is not None:
         load_state(model, opt.load_model_path, 'cuda:%d' % opt.gpus[0])

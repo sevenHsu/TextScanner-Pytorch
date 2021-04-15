@@ -8,7 +8,6 @@
     @e-mail: xxx
     @date: xxx
 """
-import os
 import cv2
 import torch
 import random
@@ -30,7 +29,7 @@ class OCRDataset(Dataset):
         self.max_seq = max_seq
         self.num_classes = len(label_table)
         self.shrink_rate = 0.5
-        self.gaussian_thresh = 0.3
+        self.gaussian_thresh = 0.5
         self.shrink_mode = 'poly'
 
         with open(list_file, 'r') as f:
@@ -64,14 +63,14 @@ class OCRDataset(Dataset):
                 img = cv2.resize(img, (new_w, new_w))
                 img = cv2.resize(img, (raw_w, raw_h))
         # load annotation
-        anno_path = osp.join(self.gt_root, self.img_files[idx].split('.')[0] + '.txt')
+        anno_path = osp.join(self.gt_root, self.img_files[idx].replace('jpg', 'txt'))
         with open(anno_path, 'r') as f:
             anno = f.read().splitlines()
 
         anno = anno[0].split(',')
         anno = np.asarray(anno).reshape(-1, 9)
 
-        chars_seg, order_seg, pos_seg, text = self._gen_target(anno, img.shape[:-1])
+        chars_seg, order_seg, pos_seg, text = self._gen_target(anno, img.shape[:-1], idx)
 
         img = cv2.resize(img, (self.input_size[1], self.input_size[0]))
         img = np.transpose(img, [2, 0, 1])
@@ -84,9 +83,9 @@ class OCRDataset(Dataset):
 
             return img, chars_seg, order_seg, pos_seg
         else:
-            return img, text
+            return img, text, img_path
 
-    def _gen_target(self, anno, img_shape):
+    def _gen_target(self, anno, img_shape, idx):
         if self.mode == 'test':
             return None, None, None, anno[0, -1]
         h, w = self.input_size
@@ -94,6 +93,8 @@ class OCRDataset(Dataset):
         chars_seg = np.zeros(self.input_size, dtype=np.uint8)
         order_map = np.zeros(self.input_size, dtype=np.uint8)
         all_gaus_map = np.zeros((self.max_seq, h, w), dtype=np.float32)
+
+        anno = self.sort_anno(anno)
 
         for k, char_anno in enumerate(anno):
             char_label = char_anno[-1]
@@ -107,15 +108,25 @@ class OCRDataset(Dataset):
             char_w, char_h = points.max(0) - points.min(0)
             center = ((points.max(0) + points.min(0)) / 2).astype(np.int)
             radius = gaussian_radius((char_h, char_w))
+            if radius == 0:
+                print(self.img_root, self.img_files[idx])
             gaussian_map = np.zeros(self.input_size, dtype=np.float32)
             gaussian_map = draw_msra_gaussian(gaussian_map, center, radius)
             all_gaus_map[k - 1] = gaussian_map
             max_gaus_val = np.max(gaussian_map)
             idx = np.where((gaussian_map / max_gaus_val) > self.gaussian_thresh)
             order_map[idx[0], idx[1]] = k
+
         pos_seg = all_gaus_map.max(0)
 
         return chars_seg, order_map, pos_seg, None
+
+    @staticmethod
+    def sort_anno(anno):
+        xx = np.array([float(i[0]) for i in anno[1:]])
+        idx = np.argsort(xx)
+        anno[1:] = anno[idx + 1]
+        return anno
 
     def __len__(self):
         return len(self.img_files)

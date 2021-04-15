@@ -1,5 +1,5 @@
 #!/bin/bash
-MODEL=txt_scan_res34
+MODEL=txt_scan_res18
 LR=1e-5
 BATCH=16
 EPOCH=100
