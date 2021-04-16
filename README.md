@@ -1,6 +1,6 @@
 ## TextScanner
 >Implementation of [TextScanner](https://arxiv.org/abs/1912.12422) with pytroch
->We trained this model on license palte number dataset([CCPD](https://github.com/detectRecog/CCPD)).
+>We trained this model on license plate number dataset([CCPD](https://github.com/detectRecog/CCPD)).
 ### Usage
    - dataset prepare
      > prepare the training dataset as the 'data' directory  
